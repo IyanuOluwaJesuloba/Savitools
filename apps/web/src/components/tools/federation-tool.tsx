@@ -55,9 +55,15 @@ function loadSavedCounterparties(): SavedCounterparty[] {
     if (!saved) return [];
     const parsed: unknown = JSON.parse(saved);
     if (!Array.isArray(parsed)) return [];
+    // Reject malformed entries: both fields must be strings AND the input
+    // must match a known Stellar address type (public key, federation
+    // address, or domain). This silently self-heals storage that was
+    // written before validation existed — bad entries are dropped on read.
     return parsed.filter(
       (item): item is SavedCounterparty =>
-        typeof item?.input === 'string' && typeof item?.name === 'string',
+        typeof item?.input === 'string' &&
+        typeof item?.name === 'string' &&
+        detectInputType(item.input) !== null,
     );
   } catch {
     return [];
@@ -897,6 +903,11 @@ export function FederationTool() {
   const saveCounterparty = () => {
     const value = input.trim();
     if (!value) return;
+    // Reject malformed entries: only a public key, federation address, or
+    // domain may be saved as a counterparty. This prevents arbitrary
+    // strings (URLs, script-like payloads, free-form text) from entering
+    // the address book.
+    if (!detectInputType(value)) return;
     const name = counterpartyName.trim() || value;
     setSavedCounterparties((current) =>
       [{ input: value, name }, ...current.filter((contact) => contact.input !== value)].slice(
