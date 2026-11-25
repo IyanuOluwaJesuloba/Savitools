@@ -16,6 +16,7 @@ import {
   type TransferLinkResult,
   type TomlCurrency,
 } from '@/lib/api';
+import { BROWSER_STORAGE_KEYS, safeGetItem, safeSetItem } from '@/lib/browser-storage';
 import {
   BookmarkPlus,
   AlertTriangle,
@@ -47,7 +48,7 @@ interface SavedCounterparty {
   name: string;
 }
 
-const COUNTERPARTY_STORAGE_KEY = 'savitools:federation:counterparties';
+const COUNTERPARTY_STORAGE_KEY = BROWSER_STORAGE_KEYS.FEDERATION_COUNTERPARTIES;
 
 function loadSavedCounterparties(): SavedCounterparty[] {
   try {
@@ -885,13 +886,9 @@ export function FederationTool() {
   }, []);
 
   useEffect(() => {
-    try {
-      // Bound counterparties to 50 entries to prevent quota exhaustion
-      const bounded = savedCounterparties.slice(0, 50);
-      window.localStorage.setItem(COUNTERPARTY_STORAGE_KEY, JSON.stringify(bounded));
-    } catch {
-      // Gracefully ignore storage quota or restriction errors
-    }
+    // Bound counterparties to 50 entries to prevent quota exhaustion
+    const bounded = savedCounterparties.slice(0, 50);
+    safeSetItem(COUNTERPARTY_STORAGE_KEY, bounded);
   }, [savedCounterparties]);
 
   useEffect(() => {
